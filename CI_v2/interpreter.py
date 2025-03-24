@@ -36,20 +36,16 @@ def initialize_agent():
     )
 
 
-def generate_qr_codes(python_agent_executor):
-    """Run the agent to generate QR codes."""
-    prompt = """Generate and save in the current working directory two QR Codes that point to 
-        https://meet-my-code.vercel.app/ , you have the QRcode package installed already."""
-    python_agent_executor.run(prompt)
+def execute_task(agent, user_request):
+    """Executes the AI agent with a user-provided request."""
+    task_prompt = f"""
+    Based on the following request, provide:
+    1. Required dependencies (if any) and installation commands.
+    2. The Python code required to complete the task.
+    3. Execution results.
+    4. A summary of what was done.
 
+    User Request: {user_request}
+    """
 
-def main():
-    """Main function to execute the QR code generation process."""
-    print("Start...")
-    load_environment()
-    agent = initialize_agent()
-    generate_qr_codes(agent)
-
-
-if __name__ == "__main__":
-    main()
+    return agent.run(task_prompt)
