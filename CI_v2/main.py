@@ -21,8 +21,23 @@ def main():
         st.write("\n📝 Processing your request...")
         try:
             response = execute_task(agent, user_request)
+
+            # Extract code part
+            parts = response.split("```python\n")
+            if len(parts) > 1:
+                code_part = parts[1].split("```", 1)[0]
+                text_part = response.replace(f"```python\n{code_part}\n```", "").strip()
+            else:
+                code_part = response
+                text_part = ""
+
             st.success("✅ Task Completed!")
-            st.code(response)
+
+            if text_part:
+                st.markdown(text_part)
+
+            st.write("### Generated Code:")
+            st.code(code_part, language="python")
         except Exception as e:
             st.error(f"❌ An error occurred: {e}")
 
