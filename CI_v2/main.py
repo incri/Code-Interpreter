@@ -1,27 +1,45 @@
+import streamlit as st
 from interpreter import execute_task, initialize_agent, load_environment
 
 
 def main():
-    """Main function to interact with the user and execute the request."""
-    print("🚀 Welcome to the AI Python Generator!")
-
-    user_request = input(
-        "Enter what you want to generate (e.g., 'Create a QR code', 'Generate a Fibonacci sequence'): "
+    """Streamlit UI for the AI Python Generator"""
+    st.title("🚀 AI Python Generator")
+    st.write(
+        "Enter what you want to generate (e.g., 'Create a QR code', 'Generate a Fibonacci sequence')"
     )
 
-    print("\n🔄 Setting up the environment...")
-    load_environment()
+    user_request = st.text_input("Your request:")
 
-    print("🤖 Initializing AI agent...")
-    agent = initialize_agent()
+    if st.button("Generate"):
+        st.write("\n🔄 Setting up the environment...")
+        load_environment()
 
-    print("\n📝 Processing your request...")
-    try:
-        response = execute_task(agent, user_request)
-        print("\n✅ Task Completed!\n")
-        print(response)
-    except Exception as e:
-        print(f"\n❌ An error occurred: {e}")
+        st.write("🤖 Initializing AI agent...")
+        agent = initialize_agent()
+
+        st.write("\n📝 Processing your request...")
+        try:
+            response = execute_task(agent, user_request)
+
+            # Extract code part
+            parts = response.split("```python\n")
+            if len(parts) > 1:
+                code_part = parts[1].split("```", 1)[0]
+                text_part = response.replace(f"```python\n{code_part}\n```", "").strip()
+            else:
+                code_part = response
+                text_part = ""
+
+            st.success("✅ Task Completed!")
+
+            if text_part:
+                st.markdown(text_part)
+
+            st.write("### Generated Code:")
+            st.code(code_part, language="python")
+        except Exception as e:
+            st.error(f"❌ An error occurred: {e}")
 
 
 if __name__ == "__main__":
