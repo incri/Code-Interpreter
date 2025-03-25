@@ -1,27 +1,30 @@
+import streamlit as st
 from interpreter import execute_task, initialize_agent, load_environment
 
 
 def main():
-    """Main function to interact with the user and execute the request."""
-    print("🚀 Welcome to the AI Python Generator!")
-
-    user_request = input(
-        "Enter what you want to generate (e.g., 'Create a QR code', 'Generate a Fibonacci sequence'): "
+    """Streamlit UI for the AI Python Generator"""
+    st.title("🚀 AI Python Generator")
+    st.write(
+        "Enter what you want to generate (e.g., 'Create a QR code', 'Generate a Fibonacci sequence')"
     )
 
-    print("\n🔄 Setting up the environment...")
-    load_environment()
+    user_request = st.text_input("Your request:")
 
-    print("🤖 Initializing AI agent...")
-    agent = initialize_agent()
+    if st.button("Generate"):
+        st.write("\n🔄 Setting up the environment...")
+        load_environment()
 
-    print("\n📝 Processing your request...")
-    try:
-        response = execute_task(agent, user_request)
-        print("\n✅ Task Completed!\n")
-        print(response)
-    except Exception as e:
-        print(f"\n❌ An error occurred: {e}")
+        st.write("🤖 Initializing AI agent...")
+        agent = initialize_agent()
+
+        st.write("\n📝 Processing your request...")
+        try:
+            response = execute_task(agent, user_request)
+            st.success("✅ Task Completed!")
+            st.code(response)
+        except Exception as e:
+            st.error(f"❌ An error occurred: {e}")
 
 
 if __name__ == "__main__":
