@@ -49,3 +49,10 @@ def create_workspace(workspace_name: str):
         json.dump(workspace_metadata, f, indent=4)
 
     return index_path
+
+
+def list_workspaces() -> List[str]:
+    """Lists all available workspaces."""
+    return [
+        f.split(".json")[0] for f in os.listdir(WORKSPACE_DIR) if f.endswith(".json")
+    ]
