@@ -72,7 +72,9 @@ def ingest_pdfs(workspace_name: str, pdf_paths: List[str]):
 
     # Load existing FAISS index or create a new one
     if os.path.exists(index_path):
-        vector_store = FAISS.load_local(index_path, embeddings)
+        vector_store = FAISS.load_local(
+            index_path, embeddings, allow_dangerous_deserialization=True
+        )
         print(f"Loaded existing FAISS index for workspace: {workspace_name}")
     else:
         vector_store = FAISS()
