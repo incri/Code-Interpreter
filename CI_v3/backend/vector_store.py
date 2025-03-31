@@ -24,18 +24,9 @@ os.makedirs(WORKSPACE_DIR, exist_ok=True)
 
 def create_workspace(workspace_name: str):
     """Creates a new workspace with a local FAISS index."""
-    DIMENSION = 768
 
     index_filename = f"{workspace_name.lower().replace(' ', '-')}.faiss"
     index_path = os.path.join(WORKSPACE_DIR, index_filename)
-
-    if os.path.exists(index_path):
-        index = faiss.read_index(index_path)
-        print(f"Loaded existing FAISS index for workspace: {workspace_name}")
-    else:
-        index = faiss.IndexFlatL2(DIMENSION)
-        faiss.write_index(index, index_path)
-        print(f"Created new FAISS index for workspace: {workspace_name}")
 
     workspace_metadata = {
         "name": workspace_name,
@@ -49,6 +40,24 @@ def create_workspace(workspace_name: str):
         json.dump(workspace_metadata, f, indent=4)
 
     return index_path
+
+
+def create_vector_store(docs, embeddings, index_name):
+    # Define the directory path where the vector store will be saved
+    index_dir = os.path.dirname(index_name)
+
+    # If no directory is specified, set a default folder path
+    if not index_dir:
+        index_dir = "faiss_index_directory"
+
+    # Ensure the directory exists
+    if not os.path.exists(index_dir):
+        os.makedirs(index_dir)
+
+    # Save the vector store to the directory
+    vector_store = FAISS.from_documents(docs, embeddings)
+    vector_store.save_local(index_name)
+    return vector_store
 
 
 def list_workspaces() -> List[str]:
@@ -70,16 +79,6 @@ def ingest_pdfs(workspace_name: str, pdf_paths: List[str]):
     index_path = workspace_data["index_path"]
     embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
-    # Load existing FAISS index or create a new one
-    if os.path.exists(index_path):
-        vector_store = FAISS.load_local(
-            index_path, embeddings, allow_dangerous_deserialization=True
-        )
-        print(f"Loaded existing FAISS index for workspace: {workspace_name}")
-    else:
-        vector_store = FAISS()
-        print(f"Created new FAISS index for workspace: {workspace_name}")
-
     text_splitter = SemanticChunker(embeddings)
     all_documents = []
 
@@ -95,8 +94,15 @@ def ingest_pdfs(workspace_name: str, pdf_paths: List[str]):
     with open(workspace_file, "w") as f:
         json.dump(workspace_data, f, indent=4)
 
-    vector_store = FAISS.from_documents(all_documents, embeddings)
-    vector_store.save_local(index_path)
+    # Load existing FAISS index or create a new one
+    if os.path.exists(index_path):
+        FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+        print(f"Loaded existing FAISS index for workspace: {workspace_name}")
+    else:
+        create_vector_store(all_documents, embeddings, index_path)
+        print(f"Created new FAISS index for workspace: {workspace_name}")
+
+    # Use create_vector_store to create/update the FAISS index
 
     print(f"Total documents processed: {len(all_documents)}")
     print(f"Updated FAISS index for workspace: {workspace_name}")
