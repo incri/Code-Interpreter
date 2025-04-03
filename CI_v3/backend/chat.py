@@ -1,34 +1,5 @@
-import os
 import time
-from dotenv import load_dotenv
-import warnings
-
-import google.generativeai as genai
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-
 from helper.db import chat_histories
-
-
-# Load environment variables
-load_dotenv()
-
-# Retrieve API keys
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-WORKSPACE_DIR = os.getenv("WORKSPACE_DIR")
-
-if not GOOGLE_API_KEY or not PINECONE_API_KEY:
-    raise ValueError(
-        "❌ Missing API keys! Set GOOGLE_API_KEY and PINECONE_API_KEY in .env."
-    )
-
-warnings.filterwarnings(
-    "ignore", category=UserWarning, message=".*LangSmithMissingAPIKeyWarning.*"
-)
-
-# Configure Gemini AI
-genai.configure(api_key=GOOGLE_API_KEY)
-embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 
 def save_chat_to_mongo(workspace_name: str, user_prompt: str, bot_response: str):
