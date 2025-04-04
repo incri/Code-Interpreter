@@ -1,6 +1,7 @@
 import os
 import json
 import warnings
+from typing import Union
 
 from helper.db import chat_histories
 from backend.chat import save_chat_to_mongo
@@ -31,21 +32,33 @@ genai.configure(api_key=GOOGLE_API_KEY)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 
-from typing import Union
+# Step 1: Check if the query is relevant to the documents
+def is_query_relevant_to_docs(query: str, retriever, threshold: float = 0.75) -> bool:
+    results = retriever.get_relevant_documents(query)
+    # If any document has a similarity score above threshold, we consider it relevant
+    return len(results) > 0
 
 
+# Step 2: Load chat history for the workspace
+def fetch_chat_history_from_mongo(workspace_name: str):
+    """Fetches the chat history from MongoDB for the specific workspace."""
+    workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
+    if workspace_chat:
+        return workspace_chat["chat_history"]
+    return []  # Return an empty list if no history exists
+
+
+# Main function
 def retrieve_answer(
     query: str, workspace_name: str, chat_history: list = None
 ) -> Union[dict, str]:
     if chat_history is None:
         chat_history = []
 
-    # Retrieve chat history from MongoDB for the given workspace
-    workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
-    if workspace_chat:
-        chat_history = workspace_chat["chat_history"]
+    # Load chat history from MongoDB
+    chat_history = fetch_chat_history_from_mongo(workspace_name)
 
-    # Load the workspace metadata
+    # Load workspace metadata
     workspace_file = os.path.join(WORKSPACE_DIR, f"{workspace_name}.json")
     if not os.path.exists(workspace_file):
         return "Workspace does not exist."
@@ -63,17 +76,24 @@ def retrieve_answer(
     )
     retriever = vector_store.as_retriever()
 
-    # Load and execute retrieval chain
+    # Step 1: Check if query is relevant to the docs
+    if not is_query_relevant_to_docs(query, retriever):
+        return {
+            "answer": "Your question doesn't seem related to the project documents."
+        }
+
+    # Step 2: Load the LLM + Prompt chain
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
     retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
     rephrase_prompt = hub.pull("langchain-ai/chat-langchain-rephrase")
+
     combine_docs_chain = create_stuff_documents_chain(llm, retrieval_qa_chat_prompt)
     chat_retriever_chain = create_history_aware_retriever(
         llm, retriever, rephrase_prompt
     )
     retrieval_chain = create_retrieval_chain(chat_retriever_chain, combine_docs_chain)
 
-    # Invoke the retrieval chain to get the answer
+    # Get response
     response = retrieval_chain.invoke({"input": query, "chat_history": chat_history})
 
     if "answer" in response:
@@ -81,14 +101,6 @@ def retrieve_answer(
         return response
     else:
         return {"answer": "No valid response received."}
-
-
-def fetch_chat_history_from_mongo(workspace_name: str):
-    """Fetches the chat history from MongoDB for the specific workspace."""
-    workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
-    if workspace_chat:
-        return workspace_chat["chat_history"]
-    return []  # Return an empty list if no history exists
 
 
 def handle_chat(prompt: str, selected_workspace: str) -> str:
