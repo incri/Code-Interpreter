@@ -1,6 +1,7 @@
 import os
 import json
 import warnings
+from typing import Union
 
 from helper.db import chat_histories
 from backend.chat import save_chat_to_mongo
@@ -29,12 +30,6 @@ warnings.filterwarnings(
 # Configure Gemini AI
 genai.configure(api_key=GOOGLE_API_KEY)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-
-
-from typing import Union
-
-
-from typing import Union
 
 
 # Step 1: Check if the query is relevant to the documents
