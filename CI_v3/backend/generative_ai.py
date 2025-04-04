@@ -31,10 +31,17 @@ genai.configure(api_key=GOOGLE_API_KEY)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 
-def retrieve_answer(query: str, workspace_name: str, chat_history: list = []) -> dict:
+from typing import Union
+
+
+def retrieve_answer(
+    query: str, workspace_name: str, chat_history: list = None
+) -> Union[dict, str]:
+    if chat_history is None:
+        chat_history = []
+
     # Retrieve chat history from MongoDB for the given workspace
     workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
-
     if workspace_chat:
         chat_history = workspace_chat["chat_history"]
 
@@ -46,9 +53,11 @@ def retrieve_answer(query: str, workspace_name: str, chat_history: list = []) ->
     with open(workspace_file, "r") as f:
         workspace_data = json.load(f)
 
-    index_path = workspace_data["index_path"]
+    index_path = workspace_data.get("index_path")
+    if not index_path:
+        return {"answer": "Workspace index path is missing."}
 
-    # Set up vector store with the selected workspace's index
+    # Set up vector store
     vector_store = FAISS.load_local(
         index_path, embeddings, allow_dangerous_deserialization=True
     )
@@ -62,14 +71,12 @@ def retrieve_answer(query: str, workspace_name: str, chat_history: list = []) ->
     chat_retriever_chain = create_history_aware_retriever(
         llm, retriever, rephrase_prompt
     )
-
     retrieval_chain = create_retrieval_chain(chat_retriever_chain, combine_docs_chain)
 
     # Invoke the retrieval chain to get the answer
     response = retrieval_chain.invoke({"input": query, "chat_history": chat_history})
 
     if "answer" in response:
-        # Save the new chat message to MongoDB before returning the response
         save_chat_to_mongo(workspace_name, query, response["answer"])
         return response
     else:
