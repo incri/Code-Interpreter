@@ -1,6 +1,7 @@
 import streamlit as st
 import os
-from backend.generative_ai import fetch_chat_history_from_mongo, handle_chat
+from backend.query_context_resolver import fetch_chat_history_from_mongo
+from backend.prompt_controller import handle_chat
 from backend.vector_store import create_workspace, list_workspaces, ingest_pdfs
 
 

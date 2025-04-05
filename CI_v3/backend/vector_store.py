@@ -8,7 +8,6 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 
 import google.generativeai as genai
-import faiss
 
 from dotenv import load_dotenv
 
