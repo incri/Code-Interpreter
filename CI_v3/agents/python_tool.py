@@ -1,5 +1,5 @@
 from langchain.tools import Tool
-from langchain.chat_models import ChatGoogleGemini
+from langchain_google_genai import ChatGoogleGenerativeAI
 import subprocess
 import tempfile
 import os
@@ -53,7 +53,7 @@ class PythonExecutor:
         return missing_packages
 
     def debug_code(self, code, error_message):
-        llm = ChatGoogleGemini(model_name="gemini-pro")
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
         prompt = f"Here is some Python code that has an error:\n{code}\n\nError message:\n{error_message}\n\nPlease provide a corrected version of the code."
         return llm.predict(prompt)
 
