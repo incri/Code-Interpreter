@@ -95,14 +95,29 @@ def handle_doc_query(
         return {"answer": "No valid response received."}
 
 
-def handle_idea_generation(prompt: str, workspace_name: str):
+def handle_idea_generation(prompt: str, workspace_name: str) -> dict:
+    # Step 1: Retrieve relevant documents
     relevant_docs = get_relevant_docs(prompt, workspace_name)
+
+    # Step 2: Initialize the LLM
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
 
+    # Step 3: Construct the full context prompt
     doc_context = "\n\n".join([doc.page_content for doc in relevant_docs])
-    idea_prompt = f"Here are the project documents:\n{doc_context}\n\nPrompt: {prompt}\n\nGive me upgraded or professional ideas to improve this project."
+    idea_prompt = (
+        f"Here are the project documents:\n{doc_context}\n\n"
+        f"Prompt: {prompt}\n\n"
+        "Give me upgraded or professional ideas to improve this project."
+    )
 
-    return {"answer": llm.invoke(idea_prompt)}
+    # Step 4: Get LLM response
+    response = llm.invoke(idea_prompt)
+
+    # Step 5: Save to MongoDB
+    if response:
+        save_chat_to_mongo(workspace_name, prompt, response.content)
+
+    return {"answer": response}
 
 
 def handle_chat_reference(prompt: str, workspace_name: str):
