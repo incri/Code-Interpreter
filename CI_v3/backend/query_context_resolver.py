@@ -36,8 +36,6 @@ def fetch_chat_history_from_mongo(workspace_name: str):
     workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
     print(workspace_chat)
     if workspace_chat:
-        print(workspace_chat["chat_"])
-
         return workspace_chat["chat_history"]
     return []  # Return an empty list if no history exists
 
