@@ -41,10 +41,27 @@ def fetch_chat_history_from_mongo(workspace_name: str):
 
 
 def match_chat_history(prompt: str, chat_history: list):
-    # Optional: use embedding similarity, or just keyword match
-    for chat in reversed(chat_history[-10:]):  # recent 10 messages
-        if any(kw in prompt.lower() for kw in chat["prompt"].lower().split()):
-            return chat["prompt"] + "\n" + chat["response"]
+    prompt_lower = prompt.lower()
+
+    # Look through user messages in the last 10 entries
+    for i in range(len(chat_history) - 1, -1, -1):
+        chat = chat_history[i]
+        if chat["role"] == "user":
+            user_message = chat["content"]
+            if any(word in prompt_lower for word in user_message.lower().split()):
+                # Try to find the corresponding assistant reply
+                if (
+                    i + 1 < len(chat_history)
+                    and chat_history[i + 1]["role"] == "assistant"
+                ):
+                    assistant_message = chat_history[i + 1]["content"]
+                else:
+                    assistant_message = "(No recorded response)"
+
+                return (
+                    f"User said: {user_message}\nAssistant replied: {assistant_message}"
+                )
+
     return None
 
 

@@ -125,7 +125,7 @@ def handle_chat_reference(prompt: str, workspace_name: str):
     match = match_chat_history(prompt, history)
 
     if match:
-        return {"answer": f"Yes, you mentioned this before:\n\n{match}"}
+        return {"answer": f"Yes, you mentioned something similar before:\n\n{match}"}
     else:
         return {
             "answer": "I couldn't find any previous reference to that. Can you clarify?"
