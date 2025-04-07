@@ -1,5 +1,9 @@
 from langchain.tools import Tool
+import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.memory import ConversationBufferMemory
+from langchain.agents import initialize_agent, AgentType
+
 import subprocess
 import tempfile
 import os
@@ -7,8 +11,17 @@ import os
 
 # Python Code Execution with Stateful Kernel, Dependency Management, and Debugging AI
 class PythonExecutor:
+
     def __init__(self):
         self.session = ""
+
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+    if not GOOGLE_API_KEY:
+        raise ValueError("❌ Missing API keys! Set GOOGLE_API_KEY in .env.")
+
+    # Configure Gemini AI
+    genai.configure(api_key=GOOGLE_API_KEY)
 
     def execute(self, code: str):
         try:
@@ -61,7 +74,7 @@ class PythonExecutor:
 python_executor = PythonExecutor()
 
 python_tool = Tool(
-    name="Python Code Executor",
+    name="python_code_executor",
     func=python_executor.execute,
     description="Executes Python code persistently, manages dependencies, auto-fixes errors, and returns the output.",
 )

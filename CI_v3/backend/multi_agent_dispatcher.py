@@ -13,8 +13,8 @@ from backend.query_context_resolver import (
 )
 
 from backend.chat import save_chat_to_mongo
-from agents import python_tool, react_tool
-
+from agents.python_tool import python_tool
+from agents.react_tool import react_tool
 
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -22,6 +22,8 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.memory import ConversationBufferMemory
+from langchain.agents import initialize_agent, AgentType
 
 
 load_dotenv()
@@ -133,24 +135,25 @@ def handle_chat_reference(prompt: str, workspace_name: str):
 
 
 def handle_code_generation(prompt: str, workspace_name: str):
-    lower_prompt = prompt.lower()
+    # LangChain Agent Setup
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    memory = ConversationBufferMemory(memory_key="chat_history")
+    print(prompt)
 
-    if "react" in lower_prompt or "component" in lower_prompt or "jsx" in lower_prompt:
-        # Clean prompt for better code generation
-        cleaned_prompt = prompt.replace("react", "", 1).strip()
-        return {"answer": react_tool.func(cleaned_prompt)}
+    agent = initialize_agent(
+        tools=[python_tool, react_tool],
+        llm=llm,
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        verbose=True,
+        memory=memory,
+    )
 
-    elif "python" in lower_prompt or "py" in lower_prompt:
-        cleaned_prompt = prompt.replace("python", "", 1).strip()
-        return {"answer": python_tool.func(cleaned_prompt)}
-
-    else:
-        return {
-            "answer": (
-                "Please specify which code you want to generate: React or Python. "
-                "For example: 'Generate a React component that...' or 'Write Python code to...'"
-            )
-        }
+    try:
+        response = agent.run(f"{prompt}")
+        print(f"[CodeGen] Response: {response}")
+        return {"answer": response}
+    except Exception as e:
+        return {"answer": f"An error occurred while generating code: {str(e)}"}
 
 
 def handle_hybrid_prompt(prompt: str, workspace_name: str):

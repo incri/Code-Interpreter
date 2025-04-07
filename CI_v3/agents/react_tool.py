@@ -38,7 +38,7 @@ export default GeneratedComponent;
 
 
 react_tool = Tool(
-    name="React Component Generator",
+    name="react_component_generator",
     func=generate_react_component,
     description="Generates a React component with state, styling, ensures correct JSX syntax, and provides live preview.",
 )
