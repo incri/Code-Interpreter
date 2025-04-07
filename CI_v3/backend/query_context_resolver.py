@@ -34,7 +34,6 @@ def is_query_relevant_to_docs(query: str, retriever, threshold: float = 0.75) ->
 def fetch_chat_history_from_mongo(workspace_name: str):
     """Fetches the chat history from MongoDB for the specific workspace."""
     workspace_chat = chat_histories.find_one({"workspace_name": workspace_name})
-    print(workspace_chat)
     if workspace_chat:
         return workspace_chat["chat_history"]
     return []  # Return an empty list if no history exists
