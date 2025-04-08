@@ -17,7 +17,7 @@ def load_environment():
 
 def initialize_agent():
     """Initialize and return the Python agent executor."""
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001", temperature=0)
     return create_python_agent(
         llm=llm,
         tool=PythonREPLTool(),

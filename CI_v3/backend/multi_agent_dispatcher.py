@@ -3,7 +3,7 @@ import warnings
 import os
 import json
 from langchain import hub
-
+import time
 from backend.query_context_resolver import (
     fetch_chat_history_from_mongo,
     get_relevant_docs,
@@ -77,7 +77,7 @@ def handle_doc_query(
         }
 
     # Step 2: Load the LLM + Prompt chain
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
     retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
     rephrase_prompt = hub.pull("langchain-ai/chat-langchain-rephrase")
 
@@ -102,7 +102,7 @@ def handle_idea_generation(prompt: str, workspace_name: str) -> dict:
     relevant_docs = get_relevant_docs(prompt, workspace_name)
 
     # Step 2: Initialize the LLM
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
 
     # Step 3: Construct the full context prompt
     doc_context = "\n\n".join([doc.page_content for doc in relevant_docs])
@@ -127,19 +127,41 @@ def handle_chat_reference(prompt: str, workspace_name: str):
     match = match_chat_history(prompt, history)
 
     if match:
-        return {"answer": f"Yes, you mentioned something similar before:\n\n{match}"}
+        response = f"Yes, you mentioned something similar before:\n\n{match}"
     else:
-        return {
-            "answer": "I couldn't find any previous reference to that. Can you clarify?"
-        }
+        response = "I couldn't find any previous reference to that. Can you clarify?"
+
+    # Save the chat to MongoDB
+    save_chat_to_mongo(workspace_name, prompt, response)
+
+    return {"answer": response}
 
 
-def handle_code_generation(prompt: str, workspace_name: str):
-    # LangChain Agent Setup
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+# Optional: Predefined FAISS code shortcut
+def predefined_faiss_code():
+    return """
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
+
+def store_chunks_in_faiss(chunks):
+    model = SentenceTransformer('all-mpnet-base-v2')
+    embeddings = model.encode(chunks)
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(embeddings.astype('float32'))
+    return index, embeddings
+"""
+
+
+# Basic rate limiter for Gemini calls
+last_gemini_call_time = 0
+
+
+def rate_limited_gemini_call(llm, prompt: str, min_delay=1.5):
+    global last_gemini_call_time
+    elapsed = time.time() - last_gemini_call_time
     memory = ConversationBufferMemory(memory_key="chat_history")
-    print(prompt)
-
     agent = initialize_agent(
         tools=[python_tool, react_tool],
         llm=llm,
@@ -147,13 +169,34 @@ def handle_code_generation(prompt: str, workspace_name: str):
         verbose=True,
         memory=memory,
     )
+    if elapsed < min_delay:
+        time.sleep(min_delay - elapsed)
+    last_gemini_call_time = time.time()
+    return agent.run(prompt)
 
+
+def handle_code_generation(prompt: str, workspace_name: str):
+    print(f"[Request] Prompt: {prompt}")
+    # Gemini LLM and memory setup
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
+
+    # Avoid Gemini for predefined code
+    if "store chunks in faiss" in prompt.lower() or "faiss and pdf" in prompt.lower():
+        print("[Info] Returning predefined FAISS code block.")
+        return {"answer": predefined_faiss_code()}
+
+    # Use LangChain tools and agents only when needed
     try:
-        response = agent.run(f"{prompt}")
+
+        response = rate_limited_gemini_call(llm, prompt)
+        print(response)
+        if response:
+            save_chat_to_mongo(workspace_name, prompt, response)
         print(f"[CodeGen] Response: {response}")
         return {"answer": response}
+
     except Exception as e:
-        return {"answer": f"An error occurred while generating code: {str(e)}"}
+        return {"answer": f"An error occurred during code generation: {str(e)}"}
 
 
 def handle_hybrid_prompt(prompt: str, workspace_name: str):
@@ -163,7 +206,7 @@ def handle_hybrid_prompt(prompt: str, workspace_name: str):
     relevant_docs = get_relevant_docs(prompt, workspace_name)
     doc_context = "\n\n".join([doc.page_content for doc in relevant_docs])
 
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
 
     final_prompt = f"""
 Prompt: {prompt}

@@ -1,80 +1,61 @@
-from langchain.tools import Tool
-import google.generativeai as genai
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.memory import ConversationBufferMemory
-from langchain.agents import initialize_agent, AgentType
-
-import subprocess
-import tempfile
 import os
+import re
+from langchain.tools import Tool
+from langchain_google_genai import ChatGoogleGenerativeAI
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not GOOGLE_API_KEY:
+    raise ValueError("❌ Missing API keys! Set GOOGLE_API_KEY in .env.")
+
+genai.configure(api_key=GOOGLE_API_KEY)
 
 
-# Python Code Execution with Stateful Kernel, Dependency Management, and Debugging AI
 class PythonExecutor:
-
-    def __init__(self):
-        self.session = ""
-
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-    if not GOOGLE_API_KEY:
-        raise ValueError("❌ Missing API keys! Set GOOGLE_API_KEY in .env.")
-
-    # Configure Gemini AI
-    genai.configure(api_key=GOOGLE_API_KEY)
-
-    def execute(self, code: str):
+    def generate_code(self, code: str):
+        """
+        Generates Python code for the user to run locally, without execution.
+        """
         try:
             if "import" in code:
-                missing_packages = self.check_missing_dependencies(code)
-                if missing_packages:
-                    return f"Error: Missing dependencies: {', '.join(missing_packages)}. Install them first."
+                missing = self.check_missing_dependencies(code)
+                if missing:
+                    return f"Missing dependencies: {', '.join(missing)}. Please install them using pip."
 
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".py")
-            with open(temp_file.name, "w") as f:
-                f.write(self.session + "\n" + code)
-            result = subprocess.run(
-                ["python", temp_file.name], capture_output=True, text=True
-            )
-            os.unlink(temp_file.name)
-            if result.stderr:
-                fixed_code = self.debug_code(code, result.stderr)
-                return f"Error detected. Suggested Fix:\n{fixed_code}"
-            if result.stdout:
-                self.session += "\n" + code
-                return result.stdout
+            # Just return the code to the user for execution locally.
+            return f"Here is the Python code for you to execute:\n\n{code}\n\nMake sure to install any dependencies first."
+
         except Exception as e:
-            return str(e)
+            return f"Error generating code: {str(e)}"
 
     def check_missing_dependencies(self, code):
-        lines = code.split("\n")
+        """
+        Checks for missing dependencies in the code.
+        """
+        lines = code.splitlines()
         imports = [
-            line.split(" ")[1]
+            re.split(r"[ \t]+", line.strip())[1]
             for line in lines
             if line.startswith("import") or line.startswith("from")
         ]
-        missing_packages = []
-        for package in imports:
+        missing = []
+        for module in imports:
             try:
-                subprocess.run(
-                    ["python", "-c", f"import {package}"],
-                    capture_output=True,
-                    text=True,
-                )
-            except:
-                missing_packages.append(package)
-        return missing_packages
-
-    def debug_code(self, code, error_message):
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
-        prompt = f"Here is some Python code that has an error:\n{code}\n\nError message:\n{error_message}\n\nPlease provide a corrected version of the code."
-        return llm.predict(prompt)
+                __import__(module)
+            except ImportError:
+                missing.append(module)
+        return missing
 
 
+# The tool can now generate code without executing it.
 python_executor = PythonExecutor()
 
 python_tool = Tool(
-    name="python_code_executor",
-    func=python_executor.execute,
-    description="Executes Python code persistently, manages dependencies, auto-fixes errors, and returns the output.",
+    name="python_code_generator",
+    func=python_executor.generate_code,
+    description="Generates Python code for the user to execute, without running it.",
 )
