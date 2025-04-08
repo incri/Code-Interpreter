@@ -30,7 +30,7 @@ You are a prompt classifier. Classify the given prompt into one of the following
 
 Return ONLY the label.
 """
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
     result = llm.invoke(system_prompt + f"\nPrompt: {prompt}")
     return result
 
