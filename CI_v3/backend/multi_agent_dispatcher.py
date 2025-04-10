@@ -189,10 +189,8 @@ def handle_code_generation(prompt: str, workspace_name: str):
     try:
 
         response = rate_limited_gemini_call(llm, prompt)
-        print(response)
         if response:
             save_chat_to_mongo(workspace_name, prompt, response)
-        print(f"[CodeGen] Response: {response}")
         return {"answer": response}
 
     except Exception as e:
@@ -209,20 +207,23 @@ def handle_hybrid_prompt(prompt: str, workspace_name: str):
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
 
     final_prompt = f"""
-Prompt: {prompt}
+    Prompt: {prompt}
 
-Related Past Conversation:
-{matched_history if matched_history else "None"}
+    Related Past Conversation:
+    {matched_history if matched_history else "None"}
 
-Relevant Docs:
-{doc_context if doc_context else "None"}
+    Relevant Docs:
+    {doc_context if doc_context else "None"}
 
-Generate appropriate Python/React code for this based on the context.
-"""
+    Generate appropriate Python/React code for this based on the context.
+    """
 
-    if "python" in prompt.lower():
-        return {"answer": python_tool.func(final_prompt)}
-    elif "react" in prompt.lower():
-        return {"answer": react_tool.func(final_prompt)}
+    if any(keyword in prompt.lower() for keyword in ["python", "react"]):
+        gen_response = rate_limited_gemini_call(llm, prompt)
+        save_chat_to_mongo(workspace_name, prompt, gen_response)
+        return {"answer": gen_response}
+
     else:
-        return {"answer": llm.invoke(final_prompt)}
+        gemini_response = llm.invoke(final_prompt)
+        save_chat_to_mongo(workspace_name, prompt, gemini_response)
+        return {"answer": gemini_response}
