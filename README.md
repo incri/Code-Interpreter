@@ -4,7 +4,7 @@
 
 PromptPilot is a Streamlit-based app that transforms the way you interact with documents, code, and AI. Upload PDFs, chat intelligently with content, classify tasks automatically, and execute prompt-driven actions with seamless AI integration using Google Gemini and FAISS.
 
-![Main Page Image](./image.jpg)
+![Main Page Image](./image.jpeg)
 
 ---
 
