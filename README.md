@@ -37,7 +37,7 @@ PromptPilot is a Streamlit-based app that transforms the way you interact with d
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/PromptPilot.git
+git clone https://github.com/incri/PromptPilot.git
 cd PromptPilot
 ```
 ### 2. Set Up Environment
