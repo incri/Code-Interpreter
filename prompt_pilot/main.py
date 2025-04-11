@@ -6,7 +6,7 @@ from backend.vector_store import create_workspace, list_workspaces, ingest_pdfs
 
 
 def main():
-    st.title("The Code-Interpreter")
+    st.title("PromptPilot")
 
     # Sidebar for workspace management
     st.sidebar.header("Workspace Management")
@@ -41,7 +41,7 @@ def main():
     # Proceed only if a workspace is selected
     if selected_workspace and selected_workspace != "-- Select --":
         # Handle PDF uploads and indexing for the selected workspace
-        """Handles PDF uploads and ingests them into the vector database."""
+        """Your AI-Powered Workspace Assistant for Smarter Prompts, Code, and Conversations."""
     if selected_workspace and selected_workspace != "-- Select --":
         st.subheader(f"Upload PDFs to Workspace: {selected_workspace}")
         uploaded_files = st.file_uploader(
