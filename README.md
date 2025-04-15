@@ -6,7 +6,7 @@ PromptPilot is a Streamlit-based app that transforms the way you interact with d
 
 ---
 
-![Main Page Image](./image.jpeg)
+![Main Page Image](./images.jpeg)
 
 
 ## ✨ Features
