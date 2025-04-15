@@ -81,12 +81,37 @@ def main():
         if "chat_answer_history" not in st.session_state:
             st.session_state["chat_answer_history"] = []
 
+        st.markdown(
+            """
+
+                <style>
+
+                div[data-testid="stForm"] {
+                position: fixed;
+                bottom: 0;
+                margin-bottom:12px;
+                z-index: 9999;
+                background-color: white;
+                width:67.5%;
+                }
+                </style>
+
+
+            """,
+            unsafe_allow_html=True,
+        )
+
         with st.form(key="chat_input_form", clear_on_submit=True):
-            prompt = st.text_area(
-                "💬 Type your question below:",
-                placeholder="Ask something based on your documents...",
-            )
-            submit_button = st.form_submit_button("Send")
+            col1, col2 = st.columns([14, 1])
+            with col1:
+                prompt = st.text_area(
+                    "💬 Type your question below:",
+                    placeholder="Ask something based on your documents...",
+                    height=70,
+                )
+            with col2:
+                st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+                submit_button = st.form_submit_button("", icon=":material/send:")
 
         if submit_button:
             if prompt.strip() == "":
